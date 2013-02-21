@@ -1,6 +1,6 @@
 # Koha [![Build Status](https://secure.travis-ci.org/cfitz/koha.png)](https://secure.travis-ci.org/cfitz/koha.png) [![Code Climate](https://codeclimate.com/github/cfitz/koha.png)](https://codeclimate.com/github/cfitz/koha)
 
-A simple ruby wrapper from the Koha ILS RESTFUL API. 
+A simple ruby wrapper for the Koha ILS RESTFUL API. 
 
 ### Prerequisites
 
