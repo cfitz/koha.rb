@@ -21,4 +21,5 @@ Gem::Specification.new do |s|
   s.add_development_dependency 'rake', '~> 10.0.3'
   s.add_development_dependency 'rdoc', '~> 3.9.5'
   s.add_development_dependency 'rspec', '~> 2.6.0'
+  s.add_development_dependency 'redcarpet'
 end

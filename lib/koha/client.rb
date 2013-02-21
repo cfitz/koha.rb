@@ -122,7 +122,7 @@ class Koha::Client
   
   # returns a hash of [ { :code => "1", :name => "Our Branch Name "}]
   def branches opts= {}
-     get "branches", opts
+     JSON.parse(get "branches", opts)
   end
   
   
@@ -130,23 +130,23 @@ class Koha::Client
   
   # returns a hash of all the users
   def all_users opts= {}
-    get "user/all", opts 
+    JSON.parse(get "user/all", opts )
   end
   
   # returns a hash of patrons enrolled today
   def today_users opts= {}
-    get "user/today", opts
+    JSON.parse(get "user/today", opts)
   end
   
   
   def user_holds opts= {}
     path, opts = build_user_path("holds", opts)
-    get path, opts
+    JSON.parse(get path, opts)
   end
   
   def user_issues opts= {}
     path, opts = build_user_path("issues", opts)
-    get path, opts
+    JSON.parse(get path, opts)
   end
   
   def build_user_path rest_method, opts= {}
@@ -162,7 +162,7 @@ class Koha::Client
   # This method will get the item record from koha given the biblionumber
   def find_biblio biblionumber, opts = {}
       biblionumber = biblionumber.to_s
-      get "biblio/#{biblionumber}/items", opts
+      JSON.parse(get "biblio/#{biblionumber}/items", opts)
   end
   
   # wrapper to check if a biblio is holdable
