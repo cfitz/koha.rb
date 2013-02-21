@@ -1,4 +1,4 @@
-# Koha
+# Koha [![Build Status](https://secure.travis-ci.org/cfitz/koha.png)](https://secure.travis-ci.org/cfitz/koha.png)
 
 A simple ruby wrapper from the Koha ILS RESTFUL API. 
 
