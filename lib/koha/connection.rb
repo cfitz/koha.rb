@@ -50,8 +50,10 @@ class Koha::Connection
        Net::HTTP::Post
      when :put
        Net::HTTP::Put
+     when :delete
+       Net::HTTP::Delete
      else
-       raise "Only :get, :post and :head http method types are allowed."
+       raise "Only :get, :post and :delete http method types are allowed."
      end
      headers = request_context[:headers] || {}
      raw_request = http_method.new request_context[:uri].request_uri

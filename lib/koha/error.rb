@@ -1,10 +1,30 @@
 module Koha::Error
   
+  module KohaContext
+
+      attr_accessor :request, :response
+
+      def to_s
+        m = "#{super.to_s}"
+        if response
+          m << " - #{response[:status]} #{Http::STATUS_CODES[response[:status].to_i]}"
+          m << "\nError: #{response[:body]}\n" if response[:body]
+        end
+        p = "\nURI: #{request[:uri].to_s}"
+        p << "\nRequest Headers: #{request[:headers].inspect}" if request[:headers]
+        p << "\nRequest Data: #{request[:data].inspect}" if request[:data]
+        p << "\n"
+        p << "\nBacktrace: " + self.backtrace[0..10].join("\n")
+        m << p
+        m
+      end
+
+    end
  
   
   class Http < RuntimeError
     
-    
+    include KohaContext
     # ripped right from ActionPack
     # Defines the standard HTTP status codes, by integer, with their
     # corresponding default message texts.

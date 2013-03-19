@@ -6,7 +6,7 @@ module Koha
   
   %W(Client Error Connection Uri Version).each{|n| autoload n.to_sym, "koha/#{n.downcase}"}
   
-  def self.version; "0.0.1" end
+  def self.version; "0.0.2" end
   
   VERSION = self.version
   

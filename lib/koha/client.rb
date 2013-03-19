@@ -27,7 +27,7 @@ class Koha::Client
   end
   
   # Create the get, post, and head methods
-  %W(get post put).each do |meth|
+  %W(get post put delete).each do |meth|
      class_eval <<-RUBY
      def #{meth} path, opts = {}, &block
        send_and_receive path, opts.merge(:method => :#{meth}), &block
@@ -70,6 +70,7 @@ class Koha::Client
   # returns a hash with the following keys:
   #   :method
   #   :params
+  #   :data
   #   :uri
   #   :path
   #   :query
@@ -79,11 +80,25 @@ class Koha::Client
     path = path.to_s
     opts[:proxy] = proxy unless proxy.nil?
     opts[:method] ||= :get
+    raise "The :data option can only be used if :method => :post" if opts[:method] != :post and opts[:data]
     opts[:params] ||= {}
-    opts[:params][:borrowernumber] = opts[:borrowernumber] if opts[:borrowernumber]
-    opts[:params][:user_name] = opts[:borrowername] if opts[:borrowername]
+    opts[:data] ||= {}
+    if opts[:method] == :get #for get q's we want user info in the params, for all others it will be a data post/put param
+      opts[:params][:borrowernumber] = opts[:borrowernumber] if opts[:borrowernumber]
+      opts[:params][:user_name] = opts[:borrowername] if opts[:borrowername]
+    else
+      opts[:data][:borrowernumber] = opts[:borrowernumber] if opts[:borrowernumber]
+      opts[:data][:user_name] = opts[:borrowername] if opts[:borrowername]
+    end
     query = Koha::Uri.to_params(opts[:params]) unless opts[:params].empty?
     opts[:query] = query
+    
+    if opts[:data].is_a? Hash
+      opts[:data] = Koha::Uri.to_params opts[:data]
+      opts[:headers] ||= {}
+      opts[:headers]['Content-Type'] ||= 'application/x-www-form-urlencoded; charset=UTF-8'
+    end
+    
     opts[:path] = path
     if base_uri
       opts[:uri] = URI.join(base_uri, path.to_s)
@@ -108,7 +123,7 @@ class Koha::Client
      raise "The response does not have the correct keys => :body, :headers, :status" unless
        %W(body headers status) == response.keys.map{|k|k.to_s}.sort
      raise Koha::Error::Http.new request, response unless [200,302].include? response[:status]
-     result = request[:evaluate] ? evaluate_json_response(request, response, request[:evaluate]) : response[:body]
+     result = request[:evaluate] ? evaluate_json_response( response, request[:evaluate]) : response[:body]
      result.extend Context
      result.request, result.response = request, response
      result
@@ -144,31 +159,63 @@ class Koha::Client
     JSON.parse(get path, opts)
   end
   
+  def delete_hold opts= {}
+    opts[:evaluate] ||= "canceled"
+    opts[:prefix] = opts[:biblionumber] ? "biblio" : "item" #delete end-point is like :/user/byid/544/holds/biblio/1
+    path, opts = build_user_path("holds", opts)
+    return  delete(path, opts)
+  end
+    
   def user_issues opts= {}
     path, opts = build_user_path("issues", opts)
     JSON.parse(get path, opts)
   end
   
-  def build_user_path rest_method, opts= {}
+  def renew_issue opts={}
+    path, opts = build_user_path("issues", opts)
+    JSON.parse(put path, opts)
+  end
+  
+  
+  def build_user_path koha_method, opts= {}
     raise ArgumentError unless (  opts[:borrowernumber] or opts[:borrowername] ) #we have to be passed either a name or number
     borrowernumber, borrowername = opts.delete(:borrowernumber), opts.delete(:borrowername)
-    path = borrowernumber ? "user/byid/#{borrowernumber}/#{rest_method}" : "user/#{borrowername}/#{rest_method}" 
+    biblionumber, itemnumber = opts.delete(:biblionumber), opts.delete(:itemnumber)
+    prefix = opts.delete(:prefix)
+    path = borrowernumber ? "user/byid/#{borrowernumber}/#{koha_method}/" : "user/#{borrowername}/#{koha_method}/" 
+    path << prefix if prefix 
+    path << "/#{itemnumber}/" if itemnumber
+    path << "/#{biblionumber}/" if ( biblionumber && itemnumber.nil?) 
     return  path, opts
   end
     
       
   ### Biblio and Item Methods ###
   
-  # This method will get the item record from koha given the biblionumber
+  # This method will get the biblio record from koha given the biblionumber
   def find_biblio biblionumber, opts = {}
       biblionumber = biblionumber.to_s
-      JSON.parse(get "biblio/#{biblionumber}/items", opts)
+      JSON.parse(get "biblio/#{biblionumber}", opts)
   end
+  
+  # This method will get the item records from koha given the biblionumber
+   def find_biblio_items biblionumber, opts = {}
+       biblionumber = biblionumber.to_s
+       JSON.parse(get "biblio/#{biblionumber}/items", opts)
+   end
+  
   
   # wrapper to check if a biblio is holdable
   # take a koha biblio number and standard client opts
   def biblio_holdable?(biblionumber, opts = {})
     is_holdable?(:biblio, biblionumber, opts )
+  end
+  
+  # makes a hold on the title.
+  # takes a koha biblionumber and the client opts, which should include either a borrowernumber or user_name param.
+  # returns a hash of the pickup location and hold date.
+  def hold_biblio(biblionumber, opts = {})
+    JSON.parse(post  "biblio/#{biblionumber}/hold", opts )
   end
   
   # wrapper to check a biblio items holdabale statues. 
@@ -186,6 +233,13 @@ class Koha::Client
     is_holdable?(:item, itemnumber, opts)
   end
   
+  # makes a hold on the title.
+  # takes a koha biblionumber and the client opts, which should include either a borrowernumber or user_name param.
+  # returns a hash of the pickup location and hold date.
+  def hold_item(itemnumber, opts = {})
+    JSON.parse( post  "item/#{itemnumber}/hold", opts )
+  end
+  
   def is_holdable?(koha_type, identifier, opts = {} )
     opts ||= {}
     opts[:evaluate] = :is_holdable unless opts[:evaluate] == false
@@ -195,13 +249,21 @@ class Koha::Client
     get "#{koha_type}/#{identifier}/#{holdable}", opts
   end
     
+    
   protected
 
   # this is used to retrun a ruby primitive based on a json node. For example holdable returns { "is_holdable" : true, "reasons" : [] }
   # and we just want true. 
-  def evaluate_json_response request, response, node
+  def evaluate_json_response response, node
     json = JSON.parse(response[:body])
-    json[node.to_s]
+    case json[node.to_s] # god-damn perl messing up my json
+    when "true" 
+      return true
+    when "false"
+      return false
+    else
+      return json[node.to_s]
+    end
   end
   
   
