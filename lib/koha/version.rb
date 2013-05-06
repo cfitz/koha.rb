@@ -1,6 +1,6 @@
 module Koha
-
-  VERSION =  "0.0.1"
-  
-  
+  VERSION =  "0.0.3"  
+  CHANGELOG =<<-END
+    IMPORTANT CHANGES LATELY:
+  END
 end

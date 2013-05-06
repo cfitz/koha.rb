@@ -3,7 +3,7 @@ require 'base64'
 
 describe "Koha::Connection" do
   
-  context "setup_raw_request" do
+  context "request_setup" do
     
     before(:each) do 
       @c = Koha::Connection.new
@@ -12,15 +12,15 @@ describe "Koha::Connection" do
     end
        
     it "should set up a get request" do
-      req = @c.send :setup_raw_request, {:headers => {"content-type" => "application/json"}, :method => :get, :uri => URI.parse(@base_url + "/biblio/1/items?borrowername=cf")}
+      req = @c.send :request_setup, {:headers => {"content-type" => "application/json"}, :method => :get, :uri => URI.parse(@base_url + "/biblio/1/items?borrowername=cf")}
       headers = {}
-      req.each_header{|k,v| headers[k] = v}
+      req.each_header { |k,v| headers[k] = v }
       req.method.should == "GET"
       headers.should == {"content-type"=>"application/json"}
     end
     
      it "should set up a post request" do
-        req = @c.send :setup_raw_request, {:headers => {"content-type" => "application/json"}, :method => :post, :uri => URI.parse(@base_url + "/biblio/1/items?borrowername=cf")}
+        req = @c.send :request_setup, {:headers => {"content-type" => "application/json"}, :method => :post, :uri => URI.parse(@base_url + "/biblio/1/items?borrowername=cf")}
         headers = {}
         req.each_header{|k,v| headers[k] = v}
         req.method.should == "POST"
@@ -28,7 +28,7 @@ describe "Koha::Connection" do
     end
     
      it "should set up a post request" do
-        req = @c.send :setup_raw_request, {:headers => {"content-type" => "application/json"}, :method => :put, :uri => URI.parse(@base_url + "/biblio/1/items?borrowername=cf")}
+        req = @c.send :request_setup, {:headers => {"content-type" => "application/json"}, :method => :put, :uri => URI.parse(@base_url + "/biblio/1/items?borrowername=cf")}
         headers = {}
         req.each_header{|k,v| headers[k] = v}
         req.method.should == "PUT"
@@ -36,7 +36,8 @@ describe "Koha::Connection" do
     end
     
      it "should raise error if something weird is set as method" do
-        expect { @c.send :setup_raw_request, {:headers => {"content-type" => "application/json"}, :method => :head, :uri => URI.parse(@base_url + "/biblio/1/items?borrowername=cf")} }.to raise_error("Only :get, :post and :head http method types are allowed.")
+        expect { @c.send :request_setup, {:headers => {"content-type" => "application/json"}, :method => :head, :uri => URI.parse(@base_url + "/biblio/1/items?borrowername=cf")} } 
+        .to raise_error("Only :get, :post and :delete http method types are allowed.")
        
     end
     
@@ -55,12 +56,12 @@ describe "Koha::Connection" do
 
     it "should configure Net:HTTP read_timeout" do
       http.should_receive(:read_timeout=).with(42)
-      subject.execute client, {:uri => URI.parse("http://localhost/some_uri"), :method => :get, :read_timeout => 42}
+      subject.request :uri => URI.parse("http://localhost/some_uri"), :method => :get, :read_timeout => 42
     end
 
     it "should use Net:HTTP default read_timeout if not specified" do
       http.should_not_receive(:read_timeout=)
-      subject.execute client, {:uri => URI.parse("http://localhost/some_uri"), :method => :get}
+      subject.request  :uri => URI.parse("http://localhost/some_uri"), :method => :get
     end
   end
 
@@ -77,12 +78,12 @@ describe "Koha::Connection" do
 
     it "should configure Net:HTTP open_timeout" do
       http.should_receive(:open_timeout=).with(42)
-      subject.execute client, {:uri => URI.parse("http://localhost/some_uri"), :method => :get, :open_timeout => 42}
+      subject.request  :uri => URI.parse("http://localhost/some_uri"), :method => :get, :open_timeout => 42
     end
 
     it "should use Net:HTTP default open_timeout if not specified" do
       http.should_not_receive(:open_timeout=)
-      subject.execute client, {:uri => URI.parse("http://localhost/some_uri"), :method => :get}
+      subject.request  :uri => URI.parse("http://localhost/some_uri"), :method => :get
     end
   end
 
@@ -102,7 +103,7 @@ describe "Koha::Connection" do
     it "should configure Net:HTTP open_timeout" do
       http.should_receive(:request).and_raise(Errno::ECONNREFUSED)
       lambda {
-        subject.execute client, request_context
+        subject.request request_context
       }.should raise_error(Errno::ECONNREFUSED, /#{request_context}/)
     end
     
@@ -110,18 +111,10 @@ describe "Koha::Connection" do
      it "should raise NoMethodError if a non-method is called" do
         http.should_receive(:request).and_raise(NoMethodError)
         lambda {
-          subject.execute client, request_context
+          subject.request  request_context
         }.should raise_error(NoMethodError, /NoMethodError/)
       end
       
-      it "should raise NoMethodError if a non-method is called" do
-          error = NoMethodError.new("undefined method `closed?' for nil:NilClass")
-          http.should_receive(:request).and_raise(error) 
-          lambda {
-            subject.execute client, request_context
-          }.should raise_error(Errno::ECONNREFUSED)
-        end
-    
   end
   
   describe "basic auth support" do
@@ -136,7 +129,7 @@ describe "Koha::Connection" do
         request.fetch('authorization').should == "Basic #{Base64.encode64("joe:pass")}".strip
         mock(Net::HTTPResponse).as_null_object
       end
-      Koha::Connection.new.execute nil, :uri => URI.parse("http://joe:pass@localhost/koha/rest.pl"), :method => :get
+      Koha::Connection.new.request :uri => URI.parse("http://joe:pass@localhost/koha/rest.pl"), :method => :get
     end
   end
   
@@ -145,7 +138,7 @@ describe "Koha::Connection" do
       @mock_proxy = mock('Proxy')
       @mock_proxy.should_receive(:new).with("localhost", 80).and_return( mock(Net::HTTP).as_null_object)  
       Net::HTTP.should_receive(:Proxy).with("proxy", 80, nil, nil).and_return(@mock_proxy)
-      Koha::Connection.new.execute nil, :uri => URI.parse("http://localhost/koha/rest.pl"),  :method => :get, :proxy =>  URI.parse("http://proxy/pass.pl")
+      Koha::Connection.new.request :uri => URI.parse("http://localhost/koha/rest.pl"),  :method => :get, :proxy =>  URI.parse("http://proxy/pass.pl")
     end
   end
   

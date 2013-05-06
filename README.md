@@ -32,7 +32,7 @@ Here a quick irb walk-through...
 
 Make a Connection...  
 
-  > 1.9.3-p286 :002 > k = Koha.connect({:url => "http://my.library.se/cgi-bin/koha/rest.pl"} )  
+  > 1.9.3-p286 :002 > k = Koha.connect(:url => "http://my.library.se/cgi-bin/koha/rest.pl" )  
   > => #<Koha::Client:0x007fbcec9b6fd0 @uri=#<URI::HTTP:0x007fbcec9c3a00 URL:http://my.library.se/cgi-bin/koha/rest.pl/>, @proxy=nil, @connection=#<Koha::Connection:0x007fbcec9b6ff8>, @options={:url=>"http://my.library.se/cgi-bin/koha/rest.pl"}>  
 
 now get branch information...  
@@ -68,6 +68,11 @@ or get the user's issues
   > => [{"itemnumber"=>"42414", "itemcallnumber"=>"KD1819 .H54 2003", "barcode"=>"022593", "date_due"=>"2013-03-11T23:59:00", "renewable"=>true, "issuedate"=>"2012-11-21T00:00:00", "biblionumber"=>"17454", "title"=>"Maritime law", "borrowernumber"=>"544", "branchcode"=>"WMU"}]  
 
 
+
+## TODO
+
+Change to Farady? Worried about other libraries that some people cannot use?
+More tests. 
 
 ### Development
 

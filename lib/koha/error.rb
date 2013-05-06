@@ -25,10 +25,7 @@ module Koha::Error
   class Http < RuntimeError
     
     include KohaContext
-    # ripped right from ActionPack
-    # Defines the standard HTTP status codes, by integer, with their
-    # corresponding default message texts.
-    # Source: http://www.iana.org/assignments/http-status-codes
+    # stolen from ActionPack
     STATUS_CODES = {
       100 => "Continue",
       101 => "Switching Protocols",

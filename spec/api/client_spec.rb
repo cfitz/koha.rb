@@ -18,30 +18,30 @@ describe "Koha::Client" do
     
   end
   
-  context "send_and_receive" do
+  context "request" do
     include ClientHelper
     it "should forward these method calls the #connection object" do
       [:get, :post, :put].each do |meth|
-        client.connection.should_receive(:execute).
+        client.connection.should_receive(:request).
             and_return({:status => 200, :body => "{}", :headers => {}})
-        client.send_and_receive '', :method => meth, :params => {}, :data => nil, :headers => {}
+        client.send_request '', :method => meth, :params => {}, :data => nil, :headers => {}
       end
     end
 
     it "should be timeout aware" do
       [:get, :post, :put].each do |meth|
-        client.connection.should_receive(:execute).with(client, hash_including(:read_timeout => 42, :open_timeout=>43))
-        client.send_and_receive '', :method => meth, :params => {}, :data => nil, :headers => {}
+        client.connection.should_receive(:request).with( hash_including(:read_timeout => 42, :open_timeout=>43))
+        client.send_request '', :method => meth, :params => {}, :data => nil, :headers => {}
       end
     end
   end
 
   context "post" do
     include ClientHelper
-    it "should pass the expected params to the connection's #execute method" do
+    it "should pass the expected params to the connection's #request method" do
       request_opts = {:data => "the data", :method=>:post, :headers => {"Content-Type" => "text/plain"}}
-      client.connection.should_receive(:execute).
-        with(client, hash_including(request_opts)).
+      client.connection.should_receive(:request).
+        with(hash_including(request_opts)).
         and_return(
           :body => "",
           :status => 200,
@@ -53,7 +53,7 @@ describe "Koha::Client" do
   
  
   
-  context "adapt_response" do
+  context "process_respons" do
     include ClientHelper
   
     
@@ -108,35 +108,35 @@ describe "Koha::Client" do
       end
       
       it "should call the user holds method for #user_holds" do
-        stub_request(:get, "http://localhost/koha/user/byid/1/holds").to_return(:status => 200, :body => 
+        stub_request(:get, "http://localhost/koha/user/byid/1/holds/").to_return(:status => 200, :body => 
 "[{\"itemnumber\":null,\"branchname\":\"World Maritime University Library\",\"itemcallnumber\":null,\"hold_id\":null,\"reservedate\":\"2013-02-20\",\"barcode\":null,\"found\":null,\"biblionumber\":\"76356\",\"cancellationdate\":null,\"title\":\"Asian approaches to international law and the legacy of colonialism and imperialism :\",\"rank\":\"1\",\"branchcode\":\"WMU\"}]"         )
         client.user_holds(:borrowernumber => "1")
-        WebMock.should have_requested(:get, "http://localhost/koha/user/byid/1/holds")
+        WebMock.should have_requested(:get, "http://localhost/koha/user/byid/1/holds/")
       end
     
     
      it "should call the user issues method for #user_issues" do
-        stub_request(:get, "http://localhost/koha/user/cf/issues").to_return(:status => 200, :body => 
+        stub_request(:get, "http://localhost/koha/user/cf/issues/").to_return(:status => 200, :body => 
 "[{\"itemnumber\":\"42414\",\"itemcallnumber\":\"KD1819 .H54 2003\",\"barcode\":\"022593\",\"date_due\":\"2013-03-11T23:59:00\",\"renewable\":true,\"issuedate\":\"2012-11-21T00:00:00\",\"biblionumber\":\"17454\",\"title\":\"Maritime law\",\"borrowernumber\":\"544\",\"branchcode\":\"WMU\"}]"         )
         client.user_issues(:borrowername => "cf")
-        WebMock.should have_requested(:get, "http://localhost/koha/user/cf/issues")
+        WebMock.should have_requested(:get, "http://localhost/koha/user/cf/issues/")
       end
     
     
       # biblio and items
       
       it "should call the biblio items method for #find_biblio" do
-          stub_request(:get, "http://localhost/koha/biblio/1/items").to_return(:status => 200, :body => 
+          stub_request(:get, "http://localhost/koha/biblio/1").to_return(:status => 200, :body => 
 "[{\"withdrawn\":\"0\",\"biblioitemnumber\":\"1\",\"restricted\":null,\"wthdrawn\":\"0\",\"holdingbranchname\":\"World Maritime University Library\",\"notforloan\":\"0\",\"replacementpricedate\":\"2010-02-05\",\"itemnumber\":\"1\",\"ccode\":null,\"itemnotes\":null,\"location\":\"GEN\",\"itemcallnumber\":\"HD30.3 .A32 1989\",\"stack\":null,\"date_due\":\"\",\"barcode\":\"011376\",\"itemlost\":\"0\",\"uri\":null,\"materials\":null,\"datelastseen\":\"2010-02-05\",\"price\":null,\"issues\":null,\"homebranch\":\"WMU\",\"replacementprice\":null,\"more_subfields_xml\":null,\"cn_source\":\"lcc\",\"homebranchname\":\"World Maritime University Library\",\"booksellerid\":null,\"biblionumber\":\"1\",\"renewals\":null,\"holdingbranch\":\"WMU\",\"timestamp\":\"2012-11-28 07:47:23\",\"damaged\":\"0\",\"stocknumber\":null,\"cn_sort\":\"HD_00030_3_A32_1989\",\"reserves\":null,\"dateaccessioned\":\"2010-02-05\",\"datelastborrowed\":null,\"enumchron\":null,\"copynumber\":\"1\",\"permanent_location\":null,\"onloan\":null,\"paidfor\":null,\"itype\":\"BOOK\"}]" ) 
           client.find_biblio("1")
-          WebMock.should have_requested(:get, "http://localhost/koha/biblio/1/items")
+          WebMock.should have_requested(:get, "http://localhost/koha/biblio/1")
       end
     
     
      it "should call the biblio items method for #find_biblio" do
           stub_request(:get, "http://localhost/koha/biblio/1/items").to_return(:status => 200, :body => 
 "[{\"withdrawn\":\"0\",\"biblioitemnumber\":\"1\",\"restricted\":null,\"wthdrawn\":\"0\",\"holdingbranchname\":\"World Maritime University Library\",\"notforloan\":\"0\",\"replacementpricedate\":\"2010-02-05\",\"itemnumber\":\"1\",\"ccode\":null,\"itemnotes\":null,\"location\":\"GEN\",\"itemcallnumber\":\"HD30.3 .A32 1989\",\"stack\":null,\"date_due\":\"\",\"barcode\":\"011376\",\"itemlost\":\"0\",\"uri\":null,\"materials\":null,\"datelastseen\":\"2010-02-05\",\"price\":null,\"issues\":null,\"homebranch\":\"WMU\",\"replacementprice\":null,\"more_subfields_xml\":null,\"cn_source\":\"lcc\",\"homebranchname\":\"World Maritime University Library\",\"booksellerid\":null,\"biblionumber\":\"1\",\"renewals\":null,\"holdingbranch\":\"WMU\",\"timestamp\":\"2012-11-28 07:47:23\",\"damaged\":\"0\",\"stocknumber\":null,\"cn_sort\":\"HD_00030_3_A32_1989\",\"reserves\":null,\"dateaccessioned\":\"2010-02-05\",\"datelastborrowed\":null,\"enumchron\":null,\"copynumber\":\"1\",\"permanent_location\":null,\"onloan\":null,\"paidfor\":null,\"itype\":\"BOOK\"}]" ) 
-          client.find_biblio("1")
+          client.find_biblio_items("1")
           WebMock.should have_requested(:get, "http://localhost/koha/biblio/1/items")
       end
     
