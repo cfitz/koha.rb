@@ -13,6 +13,12 @@ module Koha::Biblio
        JSON.parse(get "biblio/#{biblionumber}/items", opts)
    end
   
+  # this just finds the items based on a biblionumber
+  def find_items(opts = {})
+      opts[:params] ||= {}
+      opts[:params][:biblionumbers] = opts[:biblionumbers].join(",") if opts[:biblionumbers]
+      JSON.parse(get"items", opts)
+  end
   
   # wrapper to check if a biblio is holdable
   # take a koha biblio number and standard client opts

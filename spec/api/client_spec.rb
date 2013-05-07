@@ -146,6 +146,13 @@ describe "Koha::Client" do
         client.biblio_holdable?("1").should be_true
         WebMock.should have_requested(:get, "http://localhost/koha/biblio/1/holdable")
      end
+     
+     it "should find the items for #find_items" do
+         stub_request(:get, "http://localhost/koha/items?biblionumbers=1,666,23").to_return(:status => 200, :body =>
+          "{\"1\":{\"fakeitemnumber\":{\"fake\":\"itemdata\"}},\"666\":{\"fakeitemnumber\":{\"fake\":\"itemdata\"}},\"23\":{\"fakeitemnumber\":{\"fake\":\"itemdata\"}}}" )
+         client.find_items(:biblionumbers => [1,666,23]).should be_true
+         WebMock.should have_requested(:get, "http://localhost/koha/items?biblionumbers=1,666,23")
+      end
     
     # show how to use a borrowername
     it "should call the biblio holdable items for #biblio_items_holdable?" do

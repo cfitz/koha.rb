@@ -29,7 +29,7 @@ class Koha::Client
   end
   
   # Create the get, post, and head methods
-  %W(get post put delete).each do |meth|
+  %W(get post put delete head).each do |meth|
      class_eval <<-RUBY
      def #{meth} path, opts = {}, &block
        send_request path, opts.merge(:method => :#{meth}), &block

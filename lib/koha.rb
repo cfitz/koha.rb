@@ -12,8 +12,9 @@ module Koha
   class << self
     def version; VERSION end
   
-    def connect *args
+    def connect url = 'http://localhost/cgi-bin/koha/rest.pl/', *args
       opts = Hash === args[-1] ? args[-1] : {}
+      opts[:url] = url
       Client.new  Koha::Connection.new, opts
     end
   end
